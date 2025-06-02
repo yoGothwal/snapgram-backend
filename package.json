@@ -1,0 +1,30 @@
+{
+  "name": "snapgram-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "Social Media",
+    "Backend",
+    "Node.js",
+    "Express",
+    "MongoDB"
+  ],
+  "author": "Yogendra Gothwal",
+  "license": "ISC",
+  "description": "Social media app backend built with Node.js, Express, and MongoDB",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
+    "mongoose": "^8.15.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
