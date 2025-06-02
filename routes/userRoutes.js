@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const User = require('../models/User');
-const auth = require('../middlewares/auth');
+const auth = require('../middlewares/Auth');
 
 router.post("/register", auth, async (req, res) => {
     const { uid, email } = req.user;
