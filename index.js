@@ -20,7 +20,7 @@ admin.initializeApp({
 })
 const PORT = process.env.PORT || 5000;
 
-const MONGODB_URI = process.env.NODE_ENV === "production" ? process.env.MONGODB_URI : process.env.MONGO_URI_LOCAL;
+const MONGODB_URI = process.env.NODE_ENV === "production" ? process.env.MONGO_URI : process.env.MONGO_URI_LOCAL;
 
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
