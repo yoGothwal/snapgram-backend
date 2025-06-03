@@ -4,8 +4,7 @@ const auth = require('../middlewares/auth');
 
 router.post("/register", auth, async (req, res) => {
     const { uid, email } = req.user;
-    const { lat, lng } = [25.0949128, 76.5237134]; // Default coordinates for testing
-    const { name, bio, profilePicture } = req.body;
+    const { name, bio, lat, lng, profilePicture } = req.body;
     const username = req.body.username || req.body.name?.toLowerCase().replace(/\s+/g, '') || `user${Date.now()}`;
     console.log("req.body", req.body);
 
@@ -45,10 +44,7 @@ router.post("/register", auth, async (req, res) => {
     }
 })
 router.get("/nearby", auth, async (req, res) => {
-    console.log("Fetching nearby users");
-    const { lat, lng, radius } = req.query;
-    const maxDistance = parseFloat(radius) * 1000; // Convert km to meters
-
+    const { lat, lng } = req.query;
     if (!lat || !lng) {
         return res.status(400).json({ message: "Please provide latitude and longitude" });
     }
@@ -60,12 +56,11 @@ router.get("/nearby", auth, async (req, res) => {
                         type: "Point",
                         coordinates: [parseFloat(lng), parseFloat(lat)]
                     },
-                    $maxDistance: maxDistance
+                    $maxDistance: 1000000 // 1000 km
                 }
             }
         }).select("-location -createdAt -__v");
         res.status(200).json(users);
-        console.log("Nearby users fetched successfully", users.length);
     } catch (error) {
         console.error("Error fetching nearby users:", error);
         res.status(500).json({ message: "Internal server error" });
