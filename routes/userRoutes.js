@@ -6,6 +6,7 @@ router.post("/register", auth, async (req, res) => {
     const { uid, email } = req.user;
     const { name, bio, lat, lng, profilePicture } = req.body;
     const username = req.body.username || req.body.name?.toLowerCase().replace(/\s+/g, '') || `user${Date.now()}`;
+    console.log("req.body", req.body);
 
     if (!uid || !email) {
         return res.status(400).json({ message: "User ID and email are required" });
@@ -16,7 +17,11 @@ router.post("/register", auth, async (req, res) => {
     try {
         let user = await User.findOne({ uid });
         if (user) {
-            // If user exists, return their data
+            user.location = {
+                type: "Point",
+                coordinates: [parseFloat(lng), parseFloat(lat)]
+            };
+            await user.save();
             return res.status(200).json(user);
         }
         const newUser = new User({
@@ -32,7 +37,7 @@ router.post("/register", auth, async (req, res) => {
             }
         });
         await newUser.save();
-        res.status(201).json({ message: "User registered successfully" });
+        return res.status(201).json(newUser);
     } catch (error) {
         console.error("Error registering user:", error);
         res.status(500).json({ message: "Internal server error" });
