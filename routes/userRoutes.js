@@ -33,7 +33,7 @@ router.post("/register", auth, async (req, res) => {
             profilePicture,
             location: {
                 type: "Point",
-                coordinates: [parseFloat(lng), parseFloat(lat)]
+                coordinates: [76.5237134, 25.0949128]
             }
         });
         await newUser.save();
