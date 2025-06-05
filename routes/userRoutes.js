@@ -100,4 +100,62 @@ router.get("/:username", auth, async (req, res) => {
     const user = await User.findOne({ username: username })
     return res.status(201).json({ user: user })
 })
+router.post("/follow/:id", auth, async (req, res) => {
+    const { id } = req.params
+    const userToFollow = await User.findById(id);
+    const currentUser = await User.findOne({ uid: req.user.uid });
+    const currentUserId = currentUser._id
+    if (id === currentUserId) res.status(400).json({ message: "Can not follow yourself" })
+
+    try {
+        if (!userToFollow.followers.includes(currentUserId)) {
+            userToFollow.followers.push(currentUserId);
+            currentUser.following.push(id);
+            await userToFollow.save();
+            await currentUser.save();
+            console.log("followed")
+            return res.status(200).json({ msg: "Followed" });
+        } else {
+            console.log("followed aleady")
+            return res.status(400).send({ msg: "Already following" });
+        }
+    } catch (error) {
+        console.log("already following")
+        return res.status(400).json({ msg: "Already following" });
+
+    }
+})
+router.post("/unfollow/:id", auth, async (req, res) => {
+    console.log("unfol")
+    const { id } = req.params;
+    const userToUnfollow = await User.findById(id);
+    const currentUser = await User.findOne({ uid: req.user.uid });
+    const currentUserId = currentUser._id
+
+    if (id === currentUserId)
+        return res.status(400).json({ message: "Cannot unfollow yourself" });
+
+    try {
+        //         Q: Why was the unfollow route not updating the database correctly even though "unfollowed" was logged?
+        // A: The issue was due to comparing a string ID with a MongoDB ObjectId. Using .toString() ensures both values are strings, allowing accurate comparison and filtering of followers/following arrays.
+
+        if (userToUnfollow.followers.includes(currentUserId)) {
+            userToUnfollow.followers = userToUnfollow.followers.filter(
+                (followerId) => followerId.toString() !== currentUserId.toString()
+            );
+            currentUser.following = currentUser.following.filter(
+                (followedId) => followedId.toString() !== userToUnfollow._id.toString()
+            );
+            await userToUnfollow.save();
+            await currentUser.save();
+            console.log("unfollowed")
+            return res.status(200).json({ msg: "Unfollowed" });
+        } else {
+            return res.status(400).json({ msg: "Not following" });
+        }
+    } catch (error) {
+        return res.status(500).json({ msg: "Error unfollowing user" });
+    }
+});
+
 module.exports = router;
