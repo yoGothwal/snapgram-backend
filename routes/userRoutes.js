@@ -66,4 +66,30 @@ router.get("/nearby", auth, async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 })
+router.put("/update-location", auth, async (req, res) => {
+    console.log(1)
+    const { uid } = req.user;
+    const { lat, lng } = req.body;
+
+    if (!lat || !lng) {
+        return res.status(400).json({ message: "Latitude and longitude required" });
+    }
+
+    try {
+        const user = await User.findOne({ uid });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        user.location = {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+        };
+        await user.save();
+        res.status(200).json({ message: "Location updated" });
+    } catch (error) {
+        console.error("Error updating location:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
 module.exports = router;
