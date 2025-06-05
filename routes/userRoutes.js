@@ -44,7 +44,9 @@ router.post("/register", auth, async (req, res) => {
     }
 })
 router.get("/nearby", auth, async (req, res) => {
-    const { lat, lng } = req.query;
+    console.log(req.query)
+    const { lat, lng, radius } = req.query;
+    const maxDistance = radius * 1000
     if (!lat || !lng) {
         return res.status(400).json({ message: "Please provide latitude and longitude" });
     }
@@ -56,7 +58,7 @@ router.get("/nearby", auth, async (req, res) => {
                         type: "Point",
                         coordinates: [parseFloat(lng), parseFloat(lat)]
                     },
-                    $maxDistance: 1000000 // 1000 km
+                    $maxDistance: maxDistance
                 }
             }
         }).select("-location -createdAt -__v");
