@@ -2,6 +2,7 @@ const router = require('express').Router();
 const User = require('../models/User');
 const auth = require('../middlewares/auth');
 
+
 router.post("/register", auth, async (req, res) => {
     const { uid, email } = req.user;
     const { name, bio, lat, lng, profilePicture } = req.body;
@@ -44,7 +45,6 @@ router.post("/register", auth, async (req, res) => {
     }
 })
 router.get("/nearby", auth, async (req, res) => {
-    console.log(req.query)
     const { lat, lng, radius } = req.query;
     const maxDistance = radius * 1000
     if (!lat || !lng) {
@@ -94,4 +94,10 @@ router.put("/update-location", auth, async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 });
+router.get("/:username", auth, async (req, res) => {
+    const { username } = req.params
+    console.log("username", username)
+    const user = await User.findOne({ username: username })
+    return res.status(201).json({ user: user })
+})
 module.exports = router;
