@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const User = require('../models/User');
+const Notification = require('../models/Notification')
 const auth = require('../middlewares/auth');
 
 
@@ -44,6 +45,7 @@ router.post("/register", auth, async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 })
+
 router.get("/nearby", auth, async (req, res) => {
     const { lat, lng, radius } = req.query;
     const maxDistance = radius * 1000
@@ -94,12 +96,7 @@ router.put("/update-location", auth, async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 });
-router.get("/:username", auth, async (req, res) => {
-    const { username } = req.params
-    console.log("username", username)
-    const user = await User.findOne({ username: username })
-    return res.status(201).json({ user: user })
-})
+
 router.post("/follow/:id", auth, async (req, res) => {
     const { id } = req.params
     const userToFollow = await User.findById(id);
@@ -113,12 +110,17 @@ router.post("/follow/:id", auth, async (req, res) => {
             currentUser.following.push(id);
             await userToFollow.save();
             await currentUser.save();
-            console.log("followed")
-            return res.status(200).json({ msg: "Followed" });
-        } else {
-            console.log("followed aleady")
-            return res.status(400).send({ msg: "Already following" });
         }
+        const newNotification = new Notification({
+            user: userToFollow._id,
+            from: currentUser._id,
+            message: `${currentUser.username} started following you`,
+            type: "follow"
+        })
+        await newNotification.save()
+        console.log("notification saved")
+        console.log("followed")
+        return res.status(200).json({ msg: "Followed" });
     } catch (error) {
         console.log("already following")
         return res.status(400).json({ msg: "Already following" });
@@ -148,14 +150,38 @@ router.post("/unfollow/:id", auth, async (req, res) => {
             );
             await userToUnfollow.save();
             await currentUser.save();
-            console.log("unfollowed")
-            return res.status(200).json({ msg: "Unfollowed" });
-        } else {
-            return res.status(400).json({ msg: "Not following" });
         }
+        console.log("unfollowed")
+        return res.status(200).json({ msg: "Unfollowed" });
     } catch (error) {
         return res.status(500).json({ msg: "Error unfollowing user" });
     }
 });
+router.get("/notifications", auth, async (req, res) => {
+    try {
+        let user = await User.findOne({ uid: req.user.uid });
+        const notifications = await Notification.find({ user: user._id }).populate("from", "username profilePicture").sort({ createdAt: -1 })
+        res.status(200).json(notifications)
+    } catch (error) {
+        console.log("error fetching notifications", error)
+        res.status(500).json({ message: "Internal server error" });
 
+    }
+})
+router.put("/notifications/:id/seen", auth, async (req, res) => {
+    console.log("hi")
+    try {
+        await Notification.findByIdAndUpdate(req.params.id, { seen: true });
+        res.status(200).json({ message: "Marked as seen" });
+    } catch (error) {
+        console.error("Mark seen error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+router.get("/:username", auth, async (req, res) => {
+    const { username } = req.params
+    console.log("username", username)
+    const user = await User.findOne({ username: username })
+    return res.status(201).json({ user: user })
+})
 module.exports = router;
