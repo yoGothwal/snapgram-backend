@@ -111,12 +111,14 @@ router.post("/follow/:id", auth, async (req, res) => {
             await userToFollow.save();
             await currentUser.save();
         }
+
         const newNotification = new Notification({
             user: userToFollow._id,
             from: currentUser._id,
             message: `${currentUser.username} started following you`,
             type: "follow"
         })
+
         await newNotification.save()
         console.log("notification saved")
         console.log("followed")
@@ -151,6 +153,11 @@ router.post("/unfollow/:id", auth, async (req, res) => {
             await userToUnfollow.save();
             await currentUser.save();
         }
+        await Notification.deleteOne({
+            user: userToUnfollow._id,
+            from: currentUser._id,
+            type: "follow"
+        });
         console.log("unfollowed")
         return res.status(200).json({ msg: "Unfollowed" });
     } catch (error) {
@@ -169,7 +176,6 @@ router.get("/notifications", auth, async (req, res) => {
     }
 })
 router.put("/notifications/:id/seen", auth, async (req, res) => {
-    console.log("hi")
     try {
         await Notification.findByIdAndUpdate(req.params.id, { seen: true });
         res.status(200).json({ message: "Marked as seen" });
