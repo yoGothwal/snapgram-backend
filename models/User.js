@@ -32,12 +32,18 @@ const userSchema = new mongoose.Schema({
             default: [0, 0]
         }
     },
+    followerCount: {
+        type: Number,
+        default: 0,
+    },
+    followingCount: {
+        type: Number,
+        default: 0,
+    },
     createdAt: {
         type: Date,
         default: Date.now
     },
-    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 })
 userSchema.index({ location: "2dsphere" });
 const User = mongoose.model("User", userSchema);

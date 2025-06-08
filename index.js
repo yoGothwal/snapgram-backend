@@ -5,7 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const userRoutes = require('./routes/userRoutes');
-
+const connectionRoutes = require("./routes/connectionRoutes")
 const app = express();
 
 app.use(express.json());
@@ -32,6 +32,7 @@ mongoose.connect(MONGODB_URI, {
 });
 
 app.use("/api/users", userRoutes);
+app.use("/api/connections", connectionRoutes);
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
