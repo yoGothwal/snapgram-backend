@@ -8,13 +8,14 @@ const User = require('../models/User');
 router.get("/:username", auth, async (req, res) => {
     const username = req.params.username
     try {
-        const user = await User.findOne({ username }).populate("name username")
+        const user = await User.findOne({ username })
         if (!user) {
             res.status(400).json({ message: "User not found" })
         }
         console.log(user)
-        const followers = await Connection.find({ following: user._id })
-        const followings = await Connection.find({ follower: user._id })
+        const followers = await Connection.find({ following: user._id }).populate("follower");
+        const followings = await Connection.find({ follower: user._id }).populate("following");
+
         res.status(200).json({ message: "Get route working", followers, followings })
     } catch (error) {
         console.log("Error in finding followers/following: ", error)
