@@ -5,7 +5,6 @@ const messageSchema = new mongoose.Schema({
     receiver: String,
     text: String,
     imageUrl: String,
-    type: { type: String, enum: ['text', 'image'], default: 'text' },
     time: { type: Date, default: Date.now() }
 })
 messageSchema.index({ sender: 1, receiver: 1 });
