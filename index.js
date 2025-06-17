@@ -1,14 +1,19 @@
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const admin = require('firebase-admin');
 const cors = require('cors');
-require('dotenv').config();
 const multer = require('multer')
 const path = require('path')
+const cookieParser = require('cookie-parser');
+
 const userRoutes = require('./routes/userRoutes');
 const connectionRoutes = require("./routes/connectionRoutes")
 const authRoutes = require("./routes/authRoutes")
-const cookieParser = require('cookie-parser');
+
+const { startServer, app } = require("./server");
+
 const cloudinary = require('cloudinary').v2;
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -30,7 +35,7 @@ const upload = multer({
     }
 });
 
-const app = express();
+// const app = express();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 app.use(cors({
@@ -50,8 +55,6 @@ admin.initializeApp({
     }),
 })
 
-
-const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.NODE_ENV === "production" ? process.env.MONGO_URI : process.env.MONGO_URI_LOCAL;
 
 mongoose.connect(MONGODB_URI, {
@@ -98,6 +101,7 @@ app.delete('/upload/:publicId', async (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/auth", authRoutes);
+app.get("/", (req, res) => res.send("WebSocket + Express running."));
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         // A Multer error occurred when uploading
@@ -109,50 +113,6 @@ app.use((err, req, res, next) => {
     next();
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
 
-const { startServer } = require("./server");
+
 startServer();
-
-// (async function () {
-
-//     // Configuration
-//     cloudinary.config({
-//         cloud_name: 'ddzrskuzb',
-//         api_key: '842511624542552',
-//         api_secret: '<your_api_secret>' // Click 'View API Keys' above to copy your API secret
-//     });
-
-//     // Upload an image
-//     const uploadResult = await cloudinary.uploader
-//         .upload(
-//             'https://res.cloudinary.com/demo/image/upload/getting-started/shoes.jpg', {
-//             public_id: 'shoes',
-//         }
-//         )
-//         .catch((error) => {
-//             console.log(error);
-//         });
-
-//     console.log(uploadResult);
-
-//     // Optimize delivery by resizing and applying auto-format and auto-quality
-//     const optimizeUrl = cloudinary.url('shoes', {
-//         fetch_format: 'auto',
-//         quality: 'auto'
-//     });
-
-//     console.log(optimizeUrl);
-
-//     // Transform the image: auto-crop to square aspect_ratio
-//     const autoCropUrl = cloudinary.url('shoes', {
-//         crop: 'auto',
-//         gravity: 'auto',
-//         width: 500,
-//         height: 500,
-//     });
-
-//     console.log(autoCropUrl);
-// })();
