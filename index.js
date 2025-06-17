@@ -6,10 +6,18 @@ require('dotenv').config();
 
 const userRoutes = require('./routes/userRoutes');
 const connectionRoutes = require("./routes/connectionRoutes")
+const authRoutes = require("./routes/authRoutes")
+const cookieParser = require('cookie-parser');
+
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(
+    cors({
+        credentials: true,
+    })
+);
+app.use(cookieParser());
 
 admin.initializeApp({
     credential: admin.credential.cert({
@@ -33,6 +41,8 @@ mongoose.connect(MONGODB_URI, {
 
 app.use("/api/users", userRoutes);
 app.use("/api/connections", connectionRoutes);
+app.use("/api/auth", authRoutes);
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

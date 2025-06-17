@@ -1,30 +1,68 @@
 const WebSocket = require('ws')
 const PORT = 8080
-const { v4: uuidv4 } = require('uuid');
 const server = new WebSocket.Server({ port: PORT })
-console.log(`WebSocker server running on ws://localhost:${PORT}`);
+console.log(`WebSocket server running on ws://localhost:${PORT}`);
+require("dotenv").config()
+const mongoose = require('mongoose');
 
-const connections = new Map() //username -> websocket object
+const MONGODB_URI = process.env.NODE_ENV === "production" ? process.env.MONGO_URI : process.env.MONGO_URI_LOCAL;
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log("MongoDB connected");
+}).catch((err) => {
+    console.error("Error connecting to MongoDB:", err);
+});
+const Message = require("./models/Message")
+
+const connections = new Map() // username -> websocket object
 const chatHistory = new Map() // array of msg objects {"alice||bob:[msg1, msg2]"}
+
 server.on('connection', (socket) => {
     let currentUser = null
-    socket.on('message', (data) => {
+
+    // Helper functions
+    function sendError(socket, message) {
+        if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                type: "error",
+                payload: message
+            }));
+        }
+    }
+
+    function broadcast(usernames, message) {
+        const messageString = JSON.stringify(message);
+        usernames.forEach(username => {
+            const conn = connections.get(username);
+            if (conn && conn.readyState === WebSocket.OPEN) {
+                conn.send(messageString);
+            }
+        });
+    }
+
+    socket.on('message', async (data) => {
         try {
             const message = JSON.parse(data)
             switch (message.type) {
                 case 'login':
-                    handleLogin(socket, message.username)
+                    await handleLogin(socket, message.username)
                     break
                 case 'message':
-                    handleChatMessage(message)
+                    await handleChatMessage(message)
+                    break
+
                     break
                 case 'get_history':
-                    sendHistory(socket, currentUser, message.withUser)
+                    await sendHistory(socket, currentUser, message.withUser)
+                    break
                 default:
                     console.warn("Unknown message type: ", message.type)
             }
         } catch (error) {
-            console.error("Error parsing message:", error)
+            console.error("Error handling message:", error)
+            sendError(socket, "Internal server error")
         }
     })
 
@@ -34,67 +72,113 @@ server.on('connection', (socket) => {
             console.log(`${currentUser} disconnected!`)
         }
     })
-    function handleLogin(socket, username) {
+
+    const handleLogin = async (socket, username) => {
         if (!username) {
-            socket.send(JSON.stringify({
-                type: "error",
-                payload: "Username required"
-            }))
-            return
+            return sendError(socket, "Username required");
         }
+
+        if (connections.has(username)) {
+            return sendError(socket, "Username already in use");
+        }
+
         currentUser = username
         connections.set(username, socket)
         console.log(`${username} connected`)
+
         socket.send(JSON.stringify({
             type: 'login_success',
             payload: { username }
         }))
     }
-    function handleChatMessage(message) {
-        if (!message.text || !message.to || !currentUser) {
-            socket.send(JSON.stringify({
-                type: "error",
-                payload: "Invalid message format"
-            }))
-            return
+
+    const handleChatMessage = async (message) => {
+        if ((!message.text && !message.imageUrl) || !message.to || !currentUser) {
+            return sendError(connections.get(currentUser), "Message must cntain image or text");
         }
 
-        const msg = {
-            id: uuidv4(),
-            sender: currentUser,
-            text: message.text,
-            time: new Date().toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: "2-digit"
+        try {
+            const msgData = {
+                sender: currentUser,
+                receiver: message.to,
+                text: message.text,
+                imageUrl: message.imageUrl
+            }
+
+            const dbMsg = await Message.create(msgData)
+            const responseMsg = {
+                id: dbMsg._id.toString(),
+                sender: dbMsg.sender,  // Fixed from currentUser to sender
+                receiver: dbMsg.receiver,
+                text: dbMsg.text,
+                time: new Date(dbMsg.time).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: "2-digit"
+                })
+            }
+
+            const userPair = [currentUser, message.to].sort().join('_')
+            const history = chatHistory.get(userPair) || []
+            history.push(responseMsg)
+            chatHistory.set(userPair, history)
+
+            broadcast([currentUser, message.to], {
+                type: 'message',
+                payload: responseMsg
             })
-        }
 
-        const userPair = [currentUser, message.to].sort().join('_')
-        const history = chatHistory.get(userPair) || []
-        history.push(msg)
-        chatHistory.set(userPair, history)
-
-        if (connections.has(currentUser)) {
-            connections.get(currentUser).send(JSON.stringify({
-                type: 'message',
-                payload: msg
-            }))
-        }
-        if (connections.has(message.to)) {
-            connections.get(message.to).send(JSON.stringify({
-                type: 'message',
-                payload: msg
-            }))
+        } catch (err) {
+            console.error("Message handling failed:", err)
+            sendError(connections.get(currentUser), "Failed to send message")
         }
     }
-    function sendHistory(socket, user1, user2) {
-        if (!user1 || !user2) return
-        const key = [user1, user2].sort().join('_')
-        const history = chatHistory.get(key) || []
-        socket.send(JSON.stringify({
-            type: 'history',
-            payload: history
-        }))
 
+    async function sendHistory(socket, user1, user2, limit = 50) {
+        if (!user1 || !user2) {
+            return sendError(socket, "Both users must be specified");
+        }
+
+        try {
+            const key = [user1, user2].sort().join('_');
+            let history = chatHistory.get(key);
+
+            if (!history || history.length === 0) {
+                history = await Message.find({
+                    $or: [
+                        { sender: user1, receiver: user2 },
+                        { sender: user2, receiver: user1 }
+                    ]
+                })
+                    .sort({ time: 1 })  // Oldest first for history
+                    .limit(limit)
+                    .lean();
+
+                history = history.map(msg => ({
+                    id: msg._id.toString(),
+                    sender: msg.sender,
+                    receiver: msg.receiver,
+                    text: msg.text,
+                    time: new Date(msg.time).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                }));
+
+                // Cache management
+                if (history.length > 100) {
+                    history = history.slice(-100);
+                }
+                chatHistory.set(key, history);
+            }
+
+            socket.send(JSON.stringify({
+                type: 'history',
+                payload: history
+            }));
+
+        } catch (err) {
+            console.error("Failed to load history:", err);
+            sendError(socket, "Could not load chat history");
+        }
     }
 })
