@@ -51,6 +51,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+const a = 0
 app.use(express.json());
 app.use(cookieParser());
 
