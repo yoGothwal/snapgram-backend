@@ -13,7 +13,11 @@ router.post("/sessionLogin", async (req, res) => {
             maxAge: expiresIn,
             httpOnly: true,
             secure: process.env.NODE_ENV === "production" ? true : false,
-            sameSite: "strict",
+            sameSite: "none", // Required for cross-origin
+            domain: process.env.NODE_ENV === "production"
+                ? "backend-2-dgny.render.com"
+                : undefined,
+            path: "/"
         });
         res.status(200).send({ message: "Session created" });
     } catch (err) {
