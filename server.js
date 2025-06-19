@@ -48,7 +48,7 @@ wss.on("connection", (socket) => {
         try {
             const message = JSON.parse(data);
             if (message.type === "login") return handleLogin(socket, message.username);
-            if (["message", "image"].includes(message.type)) return handleChatMessage(message);
+            if (["message", "image", 'audio'].includes(message.type)) return handleChatMessage(message);
             if (message.type === "get_history") return sendHistory(socket, currentUser, message.withUser);
         } catch (err) {
             console.error("Msg error:", err);
@@ -71,14 +71,15 @@ wss.on("connection", (socket) => {
     }
 
     async function handleChatMessage(msg) {
-        if ((!msg.text && !msg.imageUrl) || !msg.to || !currentUser)
+        if ((!msg.text && !msg.imageUrl && !msg.audioUrl) || !msg.to || !currentUser)
             return sendError(connections.get(currentUser), "Missing message data");
 
         const msgData = {
             sender: currentUser,
             receiver: msg.to,
             text: msg.text,
-            imageUrl: msg.imageUrl
+            imageUrl: msg.imageUrl,
+            audioUrl: msg.audioUrl
         };
 
         const dbMsg = await Message.create(msgData);
@@ -88,6 +89,7 @@ wss.on("connection", (socket) => {
             receiver: dbMsg.receiver,
             text: dbMsg.text,
             imageUrl: dbMsg.imageUrl,
+            audioUrl: dbMsg.audioUrl,
             time: new Date(dbMsg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         };
 
@@ -98,7 +100,6 @@ wss.on("connection", (socket) => {
 
         broadcast([currentUser, msg.to], { type: "message", payload: responseMsg });
     }
-    const a = 8
     async function sendHistory(sock, u1, u2, limit = 50) {
         if (!u1 || !u2) return sendError(sock, "Need two users");
 
@@ -116,6 +117,7 @@ wss.on("connection", (socket) => {
                 receiver: msg.receiver,
                 text: msg.text,
                 imageUrl: msg.imageUrl,
+                audioUrl: msg.audioUrl,
                 time: new Date(msg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
             }));
 

@@ -21,19 +21,23 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 })
 
-const upload = multer({
-    dest: 'uploads/',
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit
-    },
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed!'), false);
-        }
-    }
-});
+const storage = multer.memoryStorage()
+const upload = multer({ storage })
+const streamifier = require('streamifier')
+
+// const upload = multer({
+//     dest: 'uploads',
+//     limits: {
+//         fileSize: 5 * 1024 * 1024 // 5MB limit
+//     },
+//     fileFilter: (req, file, cb) => {
+//         if (file.mimetype.startsWith('image/')) {
+//             cb(null, true);
+//         } else {
+//             cb(new Error('Only image files are allowed!'), false);
+//         }
+//     }
+// });
 
 // const app = express();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
@@ -65,23 +69,50 @@ mongoose.connect(MONGODB_URI, {
 }).catch((err) => {
     console.error("Error connecting to MongoDB:", err);
 });
-app.post('/upload', upload.single('image'), async (req, res) => {
+
+app.post('/upload/image', upload.single('image'), async (req, res) => {
     console.log("hello")
     try {
         if (!req.file) {
             res.status(400).json({ message: "No file uploaded" })
         }
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: "chat-app"
-        })
+        const streamUpload = (buffer) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream({ folder: 'chat-app' }, (error, result) => result ? resolve(result) : reject(error))
+                streamifier.createReadStream(buffer).pipe(stream)
+            })
+        }
+        const result = await streamUpload(req.file.buffer)
         const optimizedUrl = cloudinary.url(result.public_id, {
             transformation: [{ quality: "auto" }]
         })
-        const fs = require('fs')
-        fs.unlinkSync(req.file.path)
-        // const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
+        res.json({ imageUrl: optimizedUrl, publicId: result.public_id })
+    } catch (error) {
+        console.error("Upload error :", error);
+        res.status(500).json({ message: "Error uploading image" });
+    }
+})
+app.post('/upload/audio', upload.single('audio'), async (req, res) => {
+    console.log("hello")
+    try {
+        if (!req.file) {
+            res.status(400).json({ message: "No file uploaded" })
+        }
+        const streamUpload = (buffer) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream({ folder: 'chat-app', resource_type: "video" }, (error, result) => result ? resolve(result) : reject(error))
+                streamifier.createReadStream(buffer).pipe(stream)
+            })
+        }
+        const result = await streamUpload(req.file.buffer)
+
+        const optimizedUrl = cloudinary.url(result.public_id, {
+            resource_type: "video", // Cloudinary treats audio as "video"
+            transformation: [{ quality: "auto" }]
+        })
+
         console.log(result)
-        res.json({ imageUrl: optimizedUrl, publicId: result.publicId })
+        res.json({ audioUrl: optimizedUrl, publicId: result.public_id })
     } catch (error) {
         console.error("Upload error :", error);
 
