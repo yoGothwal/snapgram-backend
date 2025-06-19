@@ -9,15 +9,15 @@ router.post("/sessionLogin", async (req, res) => {
 
     try {
         const sessionCookie = await admin.auth().createSessionCookie(token, { expiresIn });
+        const isProduction = process.env.NODE_ENV === "production";
+
         res.cookie("authToken", sessionCookie, {
             maxAge: expiresIn,
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production" ? true : false,
-            sameSite: "none", // Required for cross-origin
-            domain: process.env.NODE_ENV === "production"
-                ? "backend-2-dgny.render.com"
-                : undefined,
-            path: "/"
+            secure: isProduction, // true in production, false in development
+            sameSite: isProduction ? "none" : "lax", // "none" in prod, "lax" in dev
+            domain: isProduction ? ".onrender.com" : undefined, // undefined in dev
+            path: "/",
         });
         res.status(200).send({ message: "Session created" });
     } catch (err) {
