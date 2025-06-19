@@ -43,7 +43,10 @@ const streamifier = require('streamifier')
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 app.use(cors({
-    origin: process.env.CLIENT_ORIGIN,
+    origin: [
+        process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+        'https://hello-lysv.onrender.com'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
