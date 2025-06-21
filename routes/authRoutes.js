@@ -4,7 +4,11 @@ const auth = require('../middlewares/auth');
 const admin = require('firebase-admin');
 
 router.post("/sessionLogin", async (req, res) => {
-    const token = req.body.token;
+    // const token = req.body.token;
+
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+    console.log(token)
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
     try {
