@@ -12,7 +12,6 @@ router.get("/:username", auth, async (req, res) => {
         if (!user) {
             res.status(400).json({ message: "User not found" })
         }
-        console.log(user)
         const followers = await Connection.find({ following: user._id }).populate("follower");
         const followings = await Connection.find({ follower: user._id }).populate("following");
 

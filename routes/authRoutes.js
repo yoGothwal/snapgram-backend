@@ -1,41 +1,9 @@
 const router = require('express').Router();
 const User = require('../models/User');
 const auth = require('../middlewares/auth');
-const admin = require('firebase-admin');
-
-router.post("/sessionLogin", async (req, res) => {
-    // const token = req.body.token;
-
-    const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
-    console.log(token)
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-
-    try {
-        const sessionCookie = await admin.auth().createSessionCookie(token, { expiresIn });
-        const isProduction = process.env.NODE_ENV === "production";
-
-        res.cookie("authToken", sessionCookie, {
-            maxAge: expiresIn,
-            httpOnly: true,
-            secure: isProduction, // true in production, false in development
-            sameSite: isProduction ? "none" : "lax", // "none" in prod, "lax" in dev
-            domain: isProduction ? ".onrender.com" : undefined, // undefined in dev
-            path: "/",
-        });
-        res.status(200).send({ message: "Session created" });
-    } catch (err) {
-        console.error("Session creation failed:", err);
-        res.status(401).send("UNAUTHORIZED");
-    }
-});
-
-router.post("/sessionLogout", (req, res) => {
-    res.clearCookie("authToken");
-    res.status(200).send("Logged out");
-});
 
 router.post("/register", auth, async (req, res) => {
+    console.log("register route")
     const { uid, email } = req.user;
     const { name, bio, lat, lng, profilePicture } = req.body;
     const username = req.body.username || req.body.name?.toLowerCase().replace(/\s+/g, '') || `user${Date.now()}`;
@@ -54,7 +22,7 @@ router.post("/register", auth, async (req, res) => {
                 coordinates: [parseFloat(lng), parseFloat(lat)]
             };
             await user.save();
-            console.log("Logged in: ", user)
+            console.log("Logged in: ", user.name)
             return res.status(200).json(user);
         }
         else {
