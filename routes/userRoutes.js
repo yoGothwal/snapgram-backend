@@ -31,14 +31,16 @@ router.get("/nearby", auth, async (req, res) => {
     }
 })
 router.put("/update-location", auth, async (req, res) => {
-    const { uid } = req.user;
+
     const { lat, lng } = req.body;
+    const query = req.user.system === 'FIREBASE' ? { uid: req.user.uid } : { userId: req.user.userId }
+
 
     if (!lat || !lng) {
         return res.status(400).json({ message: "Latitude and longitude required" });
     }
     try {
-        const user = await User.findOne({ uid });
+        const user = await User.findOne(query);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -56,8 +58,10 @@ router.put("/update-location", auth, async (req, res) => {
 
 router.post("/follow/:id", auth, async (req, res) => {
     console.log("hello")
+    const query = req.user.system === 'FIREBASE' ? { uid: req.user.uid } : { userId: req.user.userId }
+
     try {
-        const currentUser = await User.findOne({ uid: req.user.uid });
+        const currentUser = await User.findOne(query);
         const currentUserId = currentUser._id;
         const userToFollowId = req.params.id;
         const result = await followService.followUser(currentUserId, userToFollowId);
@@ -74,8 +78,10 @@ router.post("/follow/:id", auth, async (req, res) => {
 });
 
 router.post("/unfollow/:id", auth, async (req, res) => {
+    const query = req.user.system === 'FIREBASE' ? { uid: req.user.uid } : { userId: req.user.userId }
+
     try {
-        const currentUser = await User.findOne({ uid: req.user.uid });
+        const currentUser = await User.findOne(query);
 
         const currentUserId = currentUser._id;
         const userToUnfollowId = req.params.id;
@@ -93,8 +99,10 @@ router.post("/unfollow/:id", auth, async (req, res) => {
     }
 });
 router.get("/notifications", auth, async (req, res) => {
+    const query = req.user.system === 'FIREBASE' ? { uid: req.user.uid } : { userId: req.user.userId }
+
     try {
-        let user = await User.findOne({ uid: req.user.uid });
+        let user = await User.findOne(query);
         const notifications = await Notification.find({ user: user._id }).populate("from", "username profilePicture").sort({ createdAt: -1 })
         res.status(200).json(notifications)
     } catch (error) {
@@ -113,13 +121,16 @@ router.put("/notifications/:id/seen", auth, async (req, res) => {
     }
 });
 router.get("/:username", auth, async (req, res) => {
+    console.log("helloo")
+    const query = req.user.system === 'FIREBASE' ? { uid: req.user.uid } : { userId: req.user.userId }
+
     try {
-        const currentUser = await User.findOne({ uid: req.user.uid });
+        const currentUser = await User.findOne(query);
 
         const currentUserId = currentUser._id;
         const username = req.params.username;
-        console.log(username)
         const user = await User.findOne({ username });
+        console.log(user.name)
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
