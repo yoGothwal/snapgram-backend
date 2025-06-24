@@ -6,7 +6,6 @@ const admin = require('firebase-admin');
 const cors = require('cors');
 const multer = require('multer')
 const path = require('path')
-const cookieParser = require('cookie-parser');
 
 const userRoutes = require('./routes/userRoutes');
 const connectionRoutes = require("./routes/connectionRoutes")
@@ -25,21 +24,6 @@ const storage = multer.memoryStorage()
 const upload = multer({ storage })
 const streamifier = require('streamifier')
 
-// const upload = multer({
-//     dest: 'uploads',
-//     limits: {
-//         fileSize: 5 * 1024 * 1024 // 5MB limit
-//     },
-//     fileFilter: (req, file, cb) => {
-//         if (file.mimetype.startsWith('image/')) {
-//             cb(null, true);
-//         } else {
-//             cb(new Error('Only image files are allowed!'), false);
-//         }
-//     }
-// });
-
-// const app = express();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 app.use(cors({
