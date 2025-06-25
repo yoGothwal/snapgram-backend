@@ -101,6 +101,7 @@ router.post("/unfollow/:id", auth, async (req, res) => {
 router.get("/notifications", auth, async (req, res) => {
     const query = req.user.system === 'FIREBASE' ? { uid: req.user.uid } : { userId: req.user.userId }
 
+
     try {
         let user = await User.findOne(query);
         const notifications = await Notification.find({ user: user._id }).populate("from", "username profilePicture").sort({ createdAt: -1 })
@@ -130,7 +131,7 @@ router.get("/:username", auth, async (req, res) => {
         const currentUserId = currentUser._id;
         const username = req.params.username;
         const user = await User.findOne({ username });
-        console.log(user.name)
+        console.log(user?.name)
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
