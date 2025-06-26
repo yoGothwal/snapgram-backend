@@ -10,6 +10,8 @@ const path = require('path')
 const userRoutes = require('./routes/userRoutes');
 const connectionRoutes = require("./routes/connectionRoutes")
 const authRoutes = require("./routes/authRoutes")
+const postRoutes = require("./routes/postRoutes")
+const likeRoutes = require("./routes/likeRoutes")
 
 const { startServer, app } = require("./server");
 
@@ -64,7 +66,7 @@ app.post('/upload/image', upload.single('image'), async (req, res) => {
         }
         const streamUpload = (buffer) => {
             return new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream({ folder: 'chat-app' }, (error, result) => result ? resolve(result) : reject(error))
+                const stream = cloudinary.uploader.upload_stream({ folder: 'chat-app/chats/images' }, (error, result) => result ? resolve(result) : reject(error))
                 streamifier.createReadStream(buffer).pipe(stream)
             })
         }
@@ -86,7 +88,7 @@ app.post('/upload/audio', upload.single('audio'), async (req, res) => {
         }
         const streamUpload = (buffer) => {
             return new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream({ folder: 'chat-app', resource_type: "video" }, (error, result) => result ? resolve(result) : reject(error))
+                const stream = cloudinary.uploader.upload_stream({ folder: 'chat-app/chats/audio', resource_type: "video" }, (error, result) => result ? resolve(result) : reject(error))
                 streamifier.createReadStream(buffer).pipe(stream)
             })
         }
@@ -118,6 +120,8 @@ app.delete('/upload/:publicId', async (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/likes", likeRoutes);
 app.get("/", (req, res) => res.send("WebSocket + Express running."));
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
