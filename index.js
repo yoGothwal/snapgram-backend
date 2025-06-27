@@ -12,6 +12,7 @@ const connectionRoutes = require("./routes/connectionRoutes")
 const authRoutes = require("./routes/authRoutes")
 const postRoutes = require("./routes/postRoutes")
 const likeRoutes = require("./routes/likeRoutes")
+const commentRoutes = require("./routes/commentRoutes")
 
 const { startServer, app } = require("./server");
 
@@ -122,6 +123,7 @@ app.use("/api/connections", connectionRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/likes", likeRoutes);
+app.use("/api/comments", commentRoutes);
 app.get("/", (req, res) => res.send("WebSocket + Express running."));
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
